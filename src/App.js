@@ -1,6 +1,7 @@
 import './App.css'
 import { fromEvent, interval } from 'rxjs'
 import React, { useState, useEffect, useRef } from 'react'
+import { map, buffer, filter, debounceTime } from 'rxjs/operators'
 
 function App() {
   const [ time, setTime ] = useState(0)
@@ -35,12 +36,21 @@ function App() {
       }
     )
 
-    const pauseClick = fromEvent(pauseButton.current, 'click').subscribe(event =>{
+
+    const pauseClick = fromEvent(pauseButton.current, 'click')
+
+    const pauseDoubleClick = pauseClick.pipe(
+      buffer(pauseClick.pipe(debounceTime(300))),
+      map(arr => arr.length),
+      filter(x => x > 1)
+    )
+    .subscribe(event =>{
         setTimerStatus(!flag)
         flag = !flag
         disablePauseButton(true)
       }
     )
+
 
     const resetClick = fromEvent(resetButton.current, 'click').subscribe(() =>{
         setTimerStatus(false)
@@ -52,7 +62,7 @@ function App() {
 
     return () => {
       startStopClick.unsubscribe()
-      pauseClick.unsubscribe()
+      pauseDoubleClick.unsubscribe()
       resetClick.unsubscribe()
     }
   }, [])
@@ -88,7 +98,7 @@ function App() {
           <button ref={startStopButton} className="timer_control--start">
             { timerStatus ? 'Stop' : 'Start' }
           </button>
-          <button ref={pauseButton} className="timer_control--pause">Pause</button>
+          <button ref={pauseButton} className="timer_control--pause" disabled>Pause</button>
           <button ref={resetButton} className="timer_control--reset">Reset</button>
         </div>
       </div>
